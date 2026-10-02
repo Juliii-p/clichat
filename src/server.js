@@ -17,6 +17,7 @@ const MAX_BUFFER = 16 * 1024;   // bytes sin salto de línea antes de cortar
 const HELLO_TIMEOUT = 60_000;   // ms para identificarse
 const RATE_BURST = 8;           // mensajes seguidos permitidos
 const RATE_PER_SEC = 2;         // recarga de mensajes por segundo
+const LIST_DELAY = 50;          // ms para agrupar cambios de listas de salas y usuarios
 const ROOM_RE = /^[a-z0-9_-]{1,24}$/;
 
 // Líneas cortas: tiene que leerse bien en la pantalla de un teléfono.
@@ -142,18 +143,45 @@ function startServer({
   function send(c, msg) {
     if (c.socket.writable) c.socket.write(JSON.stringify(msg) + '\n');
   }
+  // Los envíos masivos arman el JSON una sola vez: con 500 personas en una sala,
+  // armarlo por destinatario era lo que más CPU consumía.
   function toRoom(room, msg, except) {
-    for (const c of room.members) if (c !== except) send(c, msg);
+    const line = JSON.stringify(msg) + '\n';
+    for (const c of room.members) if (c !== except && c.socket.writable) c.socket.write(line);
   }
   function toAll(msg) {
-    for (const c of online()) send(c, msg);
+    const line = JSON.stringify(msg) + '\n';
+    for (const c of online()) if (c.socket.writable) c.socket.write(line);
   }
   const system = (c, text) => send(c, { type: 'system', text });
   const error = (c, text) => send(c, { type: 'error', text });
   const state = (c) => send(c, { type: 'state', nick: c.nick, room: c.room && c.room.name, admin: c.admin });
   // Para las interfaces con panel: lista de salas y quién está en la sala actual.
-  const pushRooms = () => toAll({ type: 'rooms', rooms: roomList() });
-  const pushRoster = (room) => toRoom(room, { type: 'roster', room: room.name, users: roster(room) });
+  // Se agrupan: si entran 100 personas en 50 ms, sale una sola lista con todas, en vez
+  // de 100 listas a cada uno (eso hacía que entrar fuese cuadrático).
+  const dirtyRosters = new Set();
+  let roomsDirty = false;
+  let flushTimer = null;
+  function flushLists() {
+    flushTimer = null;
+    for (const room of dirtyRosters) {
+      if (rooms.get(room.name) === room) toRoom(room, { type: 'roster', room: room.name, users: roster(room) });
+    }
+    dirtyRosters.clear();
+    if (roomsDirty) {
+      roomsDirty = false;
+      toAll({ type: 'rooms', rooms: roomList() });
+    }
+  }
+  const scheduleLists = () => flushTimer || (flushTimer = setTimeout(flushLists, LIST_DELAY));
+  const pushRooms = () => {
+    roomsDirty = true;
+    scheduleLists();
+  };
+  const pushRoster = (room) => {
+    dirtyRosters.add(room);
+    scheduleLists();
+  };
 
   // ------------------------------------------------------------ salas
 
@@ -441,6 +469,7 @@ function startServer({
     if (stopping) return stopping;
     log('apagando servidor...');
     record('--- chat cerrado ---');
+    clearTimeout(flushTimer);
     if (transcript) transcript.end();
     toAll({ type: 'fatal', text: reason });
     for (const c of clients) c.socket.end();
