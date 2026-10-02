@@ -1,0 +1,42 @@
+{
+  "name": "clichat",
+  "version": "1.0.0",
+  "description": "Chat por terminal: alguien levanta un servidor y los demás se conectan. Sin dependencias, funciona en Linux, macOS, Windows y Termux.",
+  "keywords": [
+    "chat",
+    "cli",
+    "terminal",
+    "termux",
+    "tcp",
+    "lan",
+    "irc"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Juliii-p/clichat.git"
+  },
+  "homepage": "https://github.com/Juliii-p/clichat#readme",
+  "bugs": {
+    "url": "https://github.com/Juliii-p/clichat/issues"
+  },
+  "bin": {
+    "clichat": "bin/clichat.js",
+    "cli-chat": "bin/clichat.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "AVISO-LEGAL.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node bin/clichat.js",
+    "test": "node --test"
+  }
+}

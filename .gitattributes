@@ -1,0 +1,2 @@
+# LF siempre: el shebang de bin/clichat.js falla con CRLF en Linux y Termux.
+* text=auto eol=lf
