@@ -204,13 +204,13 @@ async def user(nick, args, stats, ctx, chat_start, stop):
                 welcomed.set()
             elif kind == 'password_required':
                 if not args.password:
-                    stats.failed['el servidor pide contraseña (--password)'] += 1
+                    state['reason'] = 'el servidor pide contraseña (--password)'
                     break
                 hello()
             elif kind == 'nick_rejected':
                 state['tries'] += 1
                 if state['tries'] > 5:
-                    stats.failed['nick rechazado'] += 1
+                    state['reason'] = 'nick rechazado'
                     break
                 state['nick'] = f"{nick[:14]}-{random.randint(100, 999)}"
                 hello()
@@ -228,16 +228,26 @@ async def user(nick, args, stats, ctx, chat_start, stop):
             elif kind == 'error':
                 stats.server_errors[m.get('text', '?')] += 1
             elif kind == 'fatal':
-                stats.server_errors['fatal: ' + m.get('text', '?')] += 1
+                if welcomed.is_set():
+                    stats.server_errors['fatal: ' + m.get('text', '?')] += 1
+                else:
+                    state['reason'] = m.get('text', 'el servidor rechazó la conexión')
                 break
 
     reading = asyncio.create_task(read_loop())
     hello()
-    try:
-        await asyncio.wait_for(welcomed.wait(), timeout=60)
-    except asyncio.TimeoutError:
-        stats.failed['sin bienvenida en 60 s'] += 1
-        reading.cancel()
+    waiting = asyncio.create_task(welcomed.wait())
+    await asyncio.wait({waiting, reading}, timeout=60, return_when=asyncio.FIRST_COMPLETED)
+    if not welcomed.is_set():
+        waiting.cancel()
+        if reading.done():
+            # Sin motivo explícito, lo típico es que el servidor use TLS y haya cortado
+            # al recibir texto sin cifrar.
+            hint = '' if ctx else ' (¿usa TLS? probá --tls)'
+            stats.failed[state.get('reason') or f'el servidor cerró sin dar la bienvenida{hint}'] += 1
+        else:
+            stats.failed['sin bienvenida en 60 s'] += 1
+            reading.cancel()
         writer.close()
         return
 
@@ -336,7 +346,9 @@ def report(stats, args, ramp_seconds):
     def ms(values, p):
         return f'{percentile(values, p):.0f} ms' if values else '—'
 
-    expected = stats.sent * max(stats.max_in_room, 1)
+    # Cada mensaje le llega a todos los bots de la sala (los humanos que miran no se
+    # cuentan: sus entregas no las ve este script).
+    expected = stats.sent * max(stats.connected, 1)
     print('\n')
     print('━━━ RESULTADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     print(f'servidor        {args.host}:{args.port}  sala #{args.room}  {"TLS" if args.tls else "sin TLS"}')
