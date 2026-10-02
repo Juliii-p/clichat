@@ -29,28 +29,57 @@ consola: en Linux, macOS, Windows o Android con Termux.
 
 ## Instalación
 
+**Linux, macOS y Android (Termux):**
+
 ```bash
-npm install -g clichat
+curl -fsSL https://raw.githubusercontent.com/Juliii-p/clichat/main/install.sh | bash
 ```
 
-Sin npm global, desde el código fuente:
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/Juliii-p/clichat/main/install.ps1 | iex
+```
+
+El instalador pregunta si quieres **solo el cliente** o **cliente + servidor**:
+
+1. Instala Node.js si falta: con `pkg` en Termux, Homebrew en macOS, el gestor de
+   paquetes en Linux o `winget` en Windows (preguntando antes).
+2. Instala clichat desde este repositorio y activa el autocompletado de tu shell.
+3. Con servidor, lo deja **corriendo en segundo plano** y arranca solo: un servicio
+   de usuario de systemd en Linux, termux-services en Android, launchd en macOS o
+   una tarea programada al entrar a Windows. La contraseña se guarda en un archivo
+   que solo tu usuario puede leer, y al final muestra la huella TLS para compartir.
+
+Opciones, sin preguntas:
 
 ```bash
-git clone <url-del-repo> clichat
-cd clichat
-node bin/clichat.js
+curl -fsSL https://raw.githubusercontent.com/Juliii-p/clichat/main/install.sh | bash -s -- --server --port 5555
+curl -fsSL https://raw.githubusercontent.com/Juliii-p/clichat/main/install.sh | bash -s -- --uninstall
+```
+
+`--client`, `--server`, `--port N`, `--no-tls`, `--password CLAVE`,
+`--no-completion`, `--ref RAMA`, `--uninstall`, `--dry-run` (muestra qué haría) y
+`-y`. En Windows son las mismas, con estilo PowerShell (`-Server`, `-Uninstall`,
+`-DryRun`...):
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Juliii-p/clichat/main/install.ps1))) -Server
+```
+
+Siempre es buena idea leer un script antes de ejecutarlo con `| bash`:
+[install.sh](install.sh) · [install.ps1](install.ps1).
+
+**A mano**, con Node.js 18 o superior:
+
+```bash
+npm install -g https://codeload.github.com/Juliii-p/clichat/tar.gz/main
 ```
 
 ### En Android (Termux)
 
-Instala [Termux](https://termux.dev) desde F-Droid o GitHub. La versión de Google
-Play está desactualizada. Después:
-
-```bash
-pkg install nodejs
-npm install -g clichat
-clichat
-```
+Instala [Termux](https://termux.dev) desde F-Droid o GitHub; la versión de Google
+Play está desactualizada. Después usa el instalador de arriba: trae Node.js solo.
 
 ## Uso
 
@@ -327,7 +356,7 @@ Features: rooms, private messages, history, an optional password, host
 moderation, optional TLS (`--tls`) with SSH-style fingerprint pinning, optional
 end-to-end encryption with a pre-shared passphrase (`--e2e`), and optional
 logging (`--log`), which participants are always told about. Install it with
-`npm install -g clichat`. Licensed under MIT, provided as is: see
+the one-line installer (see above). Licensed under MIT, provided as is: see
 [AVISO-LEGAL.md](AVISO-LEGAL.md).
 
 ## Licencia

@@ -3,7 +3,7 @@
 // Completan subcomandos, opciones y, después de `join` o `forget`, los servidores
 // recientes (los pide a `clichat __recientes`).
 
-const SUBCOMMANDS = ['join', 'host', 'server', 'forget', 'completion', 'help'];
+const SUBCOMMANDS = ['join', 'host', 'server', 'forget', 'completion', 'fingerprint', 'help'];
 const OPTIONS = [
   '--nick', '--port', '--password', '--tls', '--no-tls', '--fp', '--e2e',
   '--log', '--bind', '--cert', '--key', '--simple', '--help', '--version',

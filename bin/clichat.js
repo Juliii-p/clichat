@@ -22,6 +22,7 @@ Uso:
   clichat server                servidor dedicado (sin chatear)
   clichat forget <ip[:puerto]>  olvidar la huella guardada de un servidor
   clichat completion <shell>    autocompletado para bash, zsh o powershell
+  clichat fingerprint           huella TLS de este equipo, para compartirla
 
 Opciones:
   -n, --nick <nick>             tu nick
@@ -345,6 +346,15 @@ if (args.version) {
       const shell = (target || '').toLowerCase();
       if (!SCRIPTS[shell]) fail(`Uso: clichat completion <${SHELLS.join('|')}>`);
       process.stdout.write(SCRIPTS[shell]());
+      break;
+    }
+    case 'fingerprint':
+    case 'huella': {
+      // Huella del certificado de este equipo (la que verán quienes se unan con TLS).
+      // Útil cuando el servidor corre en segundo plano y no hay consola donde verla.
+      const pair = cert.loadOrCreate(config.configDir());
+      const fp = cert.fingerprint(pair.cert);
+      console.log(`${c.bold(cert.shortFingerprint(fp))}\n${c.gray(fp)}`);
       break;
     }
     case '__recientes':
